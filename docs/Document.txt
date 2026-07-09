@@ -1,0 +1,1634 @@
+# LangChain + LangGraph + Hugging Face AI Agent
+
+## Complete Beginner Project Documentation
+
+## 1. Project Overview
+
+In this project, you will build a **Professional AI Chat Agent** using:
+
+* **LangChain** – Framework for building AI applications
+* **LangGraph** – Controls the workflow of the AI agent
+* **Hugging Face Transformers** – Provides the Large Language Model (LLM)
+* **Streamlit** – Creates the web-based chat interface
+
+This project does **not require an OpenAI API key**. The model runs using Hugging Face Transformers.
+
+---
+
+# 2. Project Goal
+
+The chatbot should be able to:
+
+* Answer general questions
+* Explain programming concepts
+* Answer AWS questions
+* Help with writing
+* Answer aptitude questions
+* Explain AI and Machine Learning
+* Hold professional conversations
+
+---
+
+# 3. Project Architecture
+
+```
+                User
+                  │
+                  ▼
+           Streamlit UI
+                  │
+                  ▼
+          LangGraph Workflow
+                  │
+                  ▼
+           Chatbot Node
+                  │
+                  ▼
+      Hugging Face Transformer
+                  │
+                  ▼
+          Generated Response
+                  │
+                  ▼
+           Streamlit UI
+```
+
+---
+
+# 4. Project Folder Structure
+
+```
+hf-langgraph-agent/
+│
+├── app.py
+├── agent.py
+├── model.py
+├── requirements.txt
+├── .env
+├── README.md
+└── venv/
+```
+
+---
+
+# 5. Creating the Project
+
+## Create Folder
+
+```
+mkdir hf-langgraph-agent
+cd hf-langgraph-agent
+```
+
+---
+
+## Create Virtual Environment
+
+Windows
+
+```
+python -m venv venv
+```
+
+Activate
+
+```
+venv\Scripts\activate
+```
+
+---
+
+## Install Packages
+
+```
+pip install -r requirements.txt
+```
+
+---
+
+# 6. requirements.txt
+
+```
+streamlit
+langchain
+langgraph
+transformers
+torch
+python-dotenv
+```
+
+## Why these packages?
+
+### Streamlit
+
+Creates the web application.
+
+Without Streamlit
+
+```
+You:
+Hello
+
+AI:
+Hi
+```
+
+With Streamlit
+
+```
+Professional AI Agent
+
+Hello
+
+Hi!
+```
+
+---
+
+### LangChain
+
+LangChain connects your application with the language model.
+
+Flow
+
+```
+User
+
+↓
+
+Prompt
+
+↓
+
+Model
+
+↓
+
+Response
+```
+
+Instead of manually managing prompts and responses, LangChain simplifies the process.
+
+---
+
+### LangGraph
+
+LangGraph manages the workflow.
+
+Example
+
+```
+User
+
+↓
+
+Chatbot
+
+↓
+
+Answer
+```
+
+Later you can add more nodes like:
+
+```
+User
+
+↓
+
+Router
+
+↓
+
+Search Tool
+
+↓
+
+Calculator
+
+↓
+
+Chatbot
+
+↓
+
+Answer
+```
+
+---
+
+### Transformers
+
+Downloads and loads Hugging Face models.
+
+Examples
+
+* DialoGPT
+* TinyLlama
+* Phi-3
+* Qwen
+
+---
+
+### Torch
+
+Runs the neural network.
+
+Without Torch, the AI model cannot generate text.
+
+---
+
+### python-dotenv
+
+Reads environment variables.
+
+Example
+
+```
+HF_TOKEN=xxxxxxxx
+```
+
+---
+
+# 7. model.py
+
+```python
+from transformers import pipeline
+
+chatbot = pipeline(
+    "text-generation",
+    model="microsoft/DialoGPT-medium",
+    max_new_tokens=150
+)
+
+def ask_llm(question):
+
+    prompt = f"User: {question}\nAssistant:"
+
+    result = chatbot(prompt)
+
+    text = result[0]["generated_text"]
+
+    answer = text.replace(prompt, "").strip()
+
+    return answer
+```
+
+---
+
+## Explanation
+
+### Import
+
+```python
+from transformers import pipeline
+```
+
+Imports Hugging Face Pipeline.
+
+Pipeline is the easiest way to use an AI model.
+
+---
+
+### Load Model
+
+```python
+chatbot = pipeline(...)
+```
+
+Downloads the model (first run only).
+
+Loads it into memory.
+
+---
+
+### text-generation
+
+```
+"text-generation"
+```
+
+Means
+
+Generate text from a prompt.
+
+---
+
+### model=
+
+```
+model="microsoft/DialoGPT-medium"
+```
+
+Specifies which AI model will be used.
+
+---
+
+### max_new_tokens
+
+```
+150
+```
+
+Limits the length of the generated answer.
+
+---
+
+### ask_llm()
+
+Input
+
+```
+What is AWS?
+```
+
+Creates prompt
+
+```
+User: What is AWS?
+Assistant:
+```
+
+Model generates
+
+```
+AWS is Amazon's cloud computing platform...
+```
+
+Returns only the assistant response.
+
+---
+
+# 8. agent.py
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, END
+from model import ask_llm
+
+class AgentState(TypedDict):
+    question: str
+    answer: str
+
+def chatbot_node(state: AgentState):
+
+    answer = ask_llm(state["question"])
+
+    return {
+        "question": state["question"],
+        "answer": answer
+    }
+
+graph = StateGraph(AgentState)
+
+graph.add_node("chatbot", chatbot_node)
+
+graph.set_entry_point("chatbot")
+
+graph.add_edge("chatbot", END)
+
+agent = graph.compile()
+```
+
+---
+
+## Explanation
+
+### AgentState
+
+```
+question
+answer
+```
+
+Stores data moving inside the graph.
+
+Example
+
+Before
+
+```
+{
+"question":"What is Python?",
+"answer":""
+}
+```
+
+After
+
+```
+{
+"question":"What is Python?",
+"answer":"Python is a programming language."
+}
+```
+
+---
+
+### chatbot_node()
+
+A node performs one task.
+
+Steps
+
+```
+Receive Question
+
+↓
+
+Call AI Model
+
+↓
+
+Receive Response
+
+↓
+
+Return Updated State
+```
+
+---
+
+### StateGraph
+
+Creates the workflow.
+
+Initially
+
+```
+Empty Graph
+```
+
+---
+
+### add_node()
+
+Adds a chatbot node.
+
+```
+Graph
+
+↓
+
+Chatbot
+```
+
+---
+
+### set_entry_point()
+
+Specifies where execution starts.
+
+```
+Start
+
+↓
+
+Chatbot
+```
+
+---
+
+### add_edge()
+
+Defines where to go after the chatbot.
+
+```
+Chatbot
+
+↓
+
+END
+```
+
+---
+
+### compile()
+
+Converts the graph into an executable workflow.
+
+---
+
+# 9. app.py
+
+```python
+import streamlit as st
+from agent import agent
+
+st.set_page_config(
+    page_title="Professional AI Agent",
+    page_icon="🤖",
+    layout="centered"
+)
+
+st.title("🤖 Professional AI Agent")
+
+st.write("Ask me anything!")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+question = st.chat_input("Ask anything...")
+
+if question:
+
+    st.session_state.messages.append(
+        {
+            "role":"user",
+            "content":question
+        }
+    )
+
+    with st.chat_message("user"):
+        st.markdown(question)
+
+    result = agent.invoke(
+        {
+            "question":question,
+            "answer":""
+        }
+    )
+
+    answer = result["answer"]
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+    st.session_state.messages.append(
+        {
+            "role":"assistant",
+            "content":answer
+        }
+    )
+```
+
+---
+
+## Explanation
+
+### set_page_config()
+
+Sets page title, icon, and layout.
+
+---
+
+### title()
+
+Displays
+
+```
+🤖 Professional AI Agent
+```
+
+---
+
+### session_state
+
+Stores chat history.
+
+Without it
+
+```
+Refresh
+
+↓
+
+Conversation Lost
+```
+
+With it
+
+```
+Refresh
+
+↓
+
+Conversation Saved
+```
+
+---
+
+### chat_input()
+
+Creates the input box.
+
+```
+Ask anything...
+```
+
+---
+
+### agent.invoke()
+
+This is the most important line.
+
+Flow
+
+```
+User
+
+↓
+
+LangGraph
+
+↓
+
+Chatbot Node
+
+↓
+
+AI Model
+
+↓
+
+Answer
+```
+
+---
+
+### markdown()
+
+Displays the AI response.
+
+---
+
+# 10. Complete Data Flow
+
+```
+User
+
+↓
+
+Types Question
+
+↓
+
+Streamlit
+
+↓
+
+Session State
+
+↓
+
+agent.invoke()
+
+↓
+
+LangGraph
+
+↓
+
+Chatbot Node
+
+↓
+
+ask_llm()
+
+↓
+
+Hugging Face Model
+
+↓
+
+Generated Response
+
+↓
+
+LangGraph
+
+↓
+
+Streamlit
+
+↓
+
+User Sees Answer
+```
+
+---
+
+# 11. Running the Project
+
+Activate the virtual environment
+
+```
+venv\Scripts\activate
+```
+
+Run
+
+```
+streamlit run app.py
+```
+
+Browser opens automatically.
+
+---
+
+# 12. Example Conversation
+
+```
+User:
+What is Python?
+
+AI:
+Python is a high-level programming language used for web development, AI, automation, and data science.
+
+------------------------------------------------
+
+User:
+Explain AWS.
+
+AI:
+AWS (Amazon Web Services) is a cloud computing platform offering services such as EC2, S3, Lambda, RDS, and more.
+
+------------------------------------------------
+
+User:
+Write Bubble Sort.
+
+AI:
+def bubble_sort(arr):
+    ...
+```
+
+---
+
+# 13. Current Limitation
+
+The example uses **DialoGPT**, which is designed for conversational chat.
+
+It is not the best choice for:
+
+* Programming
+* Mathematics
+* Reasoning
+* Technical explanations
+
+---
+
+# 14. Better Hugging Face Models
+
+For higher-quality answers, replace DialoGPT with one of these instruction-tuned models:
+
+* Qwen/Qwen2.5-1.5B-Instruct
+* microsoft/Phi-3-mini-4k-instruct
+* TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+These models perform much better for coding, AWS, AI, mathematics, writing, and general question answering.
+
+---
+
+# 15. What You Learn
+
+By completing this project, you will understand:
+
+* How LangChain connects your application with an LLM
+* How LangGraph creates an AI workflow
+* How state is passed between nodes
+* How to build a Streamlit chat interface
+* How Hugging Face models generate responses
+* How to connect all components into a complete AI chatbot
+
+---
+
+# 16. Future Improvements
+
+After mastering this project, you can add:
+
+* Conversation memory
+* Retrieval-Augmented Generation (RAG)
+* PDF question answering
+* Web search tools
+* Calculator tools
+* Multiple LangGraph nodes
+* Agent routing
+* Voice input/output
+* File upload support
+* Chat history persistence
+* Docker deployment
+* Render or cloud deployment
+
+This project provides a strong foundation for building production-ready AI agents using LangChain, LangGraph, Hugging Face, and Streamlit.
+# LangChain + LangGraph + Hugging Face AI Agent
+
+## Complete Beginner Project Documentation
+
+## 1. Project Overview
+
+In this project, you will build a **Professional AI Chat Agent** using:
+
+* **LangChain** – Framework for building AI applications
+* **LangGraph** – Controls the workflow of the AI agent
+* **Hugging Face Transformers** – Provides the Large Language Model (LLM)
+* **Streamlit** – Creates the web-based chat interface
+
+This project does **not require an OpenAI API key**. The model runs using Hugging Face Transformers.
+
+---
+
+# 2. Project Goal
+
+The chatbot should be able to:
+
+* Answer general questions
+* Explain programming concepts
+* Answer AWS questions
+* Help with writing
+* Answer aptitude questions
+* Explain AI and Machine Learning
+* Hold professional conversations
+
+---
+
+# 3. Project Architecture
+
+```
+                User
+                  │
+                  ▼
+           Streamlit UI
+                  │
+                  ▼
+          LangGraph Workflow
+                  │
+                  ▼
+           Chatbot Node
+                  │
+                  ▼
+      Hugging Face Transformer
+                  │
+                  ▼
+          Generated Response
+                  │
+                  ▼
+           Streamlit UI
+```
+
+---
+
+# 4. Project Folder Structure
+
+```
+hf-langgraph-agent/
+│
+├── app.py
+├── agent.py
+├── model.py
+├── requirements.txt
+├── .env
+├── README.md
+└── venv/
+```
+
+---
+
+# 5. Creating the Project
+
+## Create Folder
+
+```
+mkdir hf-langgraph-agent
+cd hf-langgraph-agent
+```
+
+---
+
+## Create Virtual Environment
+
+Windows
+
+```
+python -m venv venv
+```
+
+Activate
+
+```
+venv\Scripts\activate
+```
+
+---
+
+## Install Packages
+
+```
+pip install -r requirements.txt
+```
+
+---
+
+# 6. requirements.txt
+
+```
+streamlit
+langchain
+langgraph
+transformers
+torch
+python-dotenv
+```
+
+## Why these packages?
+
+### Streamlit
+
+Creates the web application.
+
+Without Streamlit
+
+```
+You:
+Hello
+
+AI:
+Hi
+```
+
+With Streamlit
+
+```
+Professional AI Agent
+
+Hello
+
+Hi!
+```
+
+---
+
+### LangChain
+
+LangChain connects your application with the language model.
+
+Flow
+
+```
+User
+
+↓
+
+Prompt
+
+↓
+
+Model
+
+↓
+
+Response
+```
+
+Instead of manually managing prompts and responses, LangChain simplifies the process.
+
+---
+
+### LangGraph
+
+LangGraph manages the workflow.
+
+Example
+
+```
+User
+
+↓
+
+Chatbot
+
+↓
+
+Answer
+```
+
+Later you can add more nodes like:
+
+```
+User
+
+↓
+
+Router
+
+↓
+
+Search Tool
+
+↓
+
+Calculator
+
+↓
+
+Chatbot
+
+↓
+
+Answer
+```
+
+---
+
+### Transformers
+
+Downloads and loads Hugging Face models.
+
+Examples
+
+* DialoGPT
+* TinyLlama
+* Phi-3
+* Qwen
+
+---
+
+### Torch
+
+Runs the neural network.
+
+Without Torch, the AI model cannot generate text.
+
+---
+
+### python-dotenv
+
+Reads environment variables.
+
+Example
+
+```
+HF_TOKEN=xxxxxxxx
+```
+
+---
+
+# 7. model.py
+
+```python
+from transformers import pipeline
+
+chatbot = pipeline(
+    "text-generation",
+    model="microsoft/DialoGPT-medium",
+    max_new_tokens=150
+)
+
+def ask_llm(question):
+
+    prompt = f"User: {question}\nAssistant:"
+
+    result = chatbot(prompt)
+
+    text = result[0]["generated_text"]
+
+    answer = text.replace(prompt, "").strip()
+
+    return answer
+```
+
+---
+
+## Explanation
+
+### Import
+
+```python
+from transformers import pipeline
+```
+
+Imports Hugging Face Pipeline.
+
+Pipeline is the easiest way to use an AI model.
+
+---
+
+### Load Model
+
+```python
+chatbot = pipeline(...)
+```
+
+Downloads the model (first run only).
+
+Loads it into memory.
+
+---
+
+### text-generation
+
+```
+"text-generation"
+```
+
+Means
+
+Generate text from a prompt.
+
+---
+
+### model=
+
+```
+model="microsoft/DialoGPT-medium"
+```
+
+Specifies which AI model will be used.
+
+---
+
+### max_new_tokens
+
+```
+150
+```
+
+Limits the length of the generated answer.
+
+---
+
+### ask_llm()
+
+Input
+
+```
+What is AWS?
+```
+
+Creates prompt
+
+```
+User: What is AWS?
+Assistant:
+```
+
+Model generates
+
+```
+AWS is Amazon's cloud computing platform...
+```
+
+Returns only the assistant response.
+
+---
+
+# 8. agent.py
+
+```python
+from typing import TypedDict
+from langgraph.graph import StateGraph, END
+from model import ask_llm
+
+class AgentState(TypedDict):
+    question: str
+    answer: str
+
+def chatbot_node(state: AgentState):
+
+    answer = ask_llm(state["question"])
+
+    return {
+        "question": state["question"],
+        "answer": answer
+    }
+
+graph = StateGraph(AgentState)
+
+graph.add_node("chatbot", chatbot_node)
+
+graph.set_entry_point("chatbot")
+
+graph.add_edge("chatbot", END)
+
+agent = graph.compile()
+```
+
+---
+
+## Explanation
+
+### AgentState
+
+```
+question
+answer
+```
+
+Stores data moving inside the graph.
+
+Example
+
+Before
+
+```
+{
+"question":"What is Python?",
+"answer":""
+}
+```
+
+After
+
+```
+{
+"question":"What is Python?",
+"answer":"Python is a programming language."
+}
+```
+
+---
+
+### chatbot_node()
+
+A node performs one task.
+
+Steps
+
+```
+Receive Question
+
+↓
+
+Call AI Model
+
+↓
+
+Receive Response
+
+↓
+
+Return Updated State
+```
+
+---
+
+### StateGraph
+
+Creates the workflow.
+
+Initially
+
+```
+Empty Graph
+```
+
+---
+
+### add_node()
+
+Adds a chatbot node.
+
+```
+Graph
+
+↓
+
+Chatbot
+```
+
+---
+
+### set_entry_point()
+
+Specifies where execution starts.
+
+```
+Start
+
+↓
+
+Chatbot
+```
+
+---
+
+### add_edge()
+
+Defines where to go after the chatbot.
+
+```
+Chatbot
+
+↓
+
+END
+```
+
+---
+
+### compile()
+
+Converts the graph into an executable workflow.
+
+---
+
+# 9. app.py
+
+```python
+import streamlit as st
+from agent import agent
+
+st.set_page_config(
+    page_title="Professional AI Agent",
+    page_icon="🤖",
+    layout="centered"
+)
+
+st.title("🤖 Professional AI Agent")
+
+st.write("Ask me anything!")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+question = st.chat_input("Ask anything...")
+
+if question:
+
+    st.session_state.messages.append(
+        {
+            "role":"user",
+            "content":question
+        }
+    )
+
+    with st.chat_message("user"):
+        st.markdown(question)
+
+    result = agent.invoke(
+        {
+            "question":question,
+            "answer":""
+        }
+    )
+
+    answer = result["answer"]
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+    st.session_state.messages.append(
+        {
+            "role":"assistant",
+            "content":answer
+        }
+    )
+```
+
+---
+
+## Explanation
+
+### set_page_config()
+
+Sets page title, icon, and layout.
+
+---
+
+### title()
+
+Displays
+
+```
+🤖 Professional AI Agent
+```
+
+---
+
+### session_state
+
+Stores chat history.
+
+Without it
+
+```
+Refresh
+
+↓
+
+Conversation Lost
+```
+
+With it
+
+```
+Refresh
+
+↓
+
+Conversation Saved
+```
+
+---
+
+### chat_input()
+
+Creates the input box.
+
+```
+Ask anything...
+```
+
+---
+
+### agent.invoke()
+
+This is the most important line.
+
+Flow
+
+```
+User
+
+↓
+
+LangGraph
+
+↓
+
+Chatbot Node
+
+↓
+
+AI Model
+
+↓
+
+Answer
+```
+
+---
+
+### markdown()
+
+Displays the AI response.
+
+---
+
+# 10. Complete Data Flow
+
+```
+User
+
+↓
+
+Types Question
+
+↓
+
+Streamlit
+
+↓
+
+Session State
+
+↓
+
+agent.invoke()
+
+↓
+
+LangGraph
+
+↓
+
+Chatbot Node
+
+↓
+
+ask_llm()
+
+↓
+
+Hugging Face Model
+
+↓
+
+Generated Response
+
+↓
+
+LangGraph
+
+↓
+
+Streamlit
+
+↓
+
+User Sees Answer
+```
+
+---
+
+# 11. Running the Project
+
+Activate the virtual environment
+
+```
+venv\Scripts\activate
+```
+
+Run
+
+```
+streamlit run app.py
+```
+
+Browser opens automatically.
+
+---
+
+# 12. Example Conversation
+
+```
+User:
+What is Python?
+
+AI:
+Python is a high-level programming language used for web development, AI, automation, and data science.
+
+------------------------------------------------
+
+User:
+Explain AWS.
+
+AI:
+AWS (Amazon Web Services) is a cloud computing platform offering services such as EC2, S3, Lambda, RDS, and more.
+
+------------------------------------------------
+
+User:
+Write Bubble Sort.
+
+AI:
+def bubble_sort(arr):
+    ...
+```
+
+---
+
+# 13. Current Limitation
+
+The example uses **DialoGPT**, which is designed for conversational chat.
+
+It is not the best choice for:
+
+* Programming
+* Mathematics
+* Reasoning
+* Technical explanations
+
+---
+
+# 14. Better Hugging Face Models
+
+For higher-quality answers, replace DialoGPT with one of these instruction-tuned models:
+
+* Qwen/Qwen2.5-1.5B-Instruct
+* microsoft/Phi-3-mini-4k-instruct
+* TinyLlama/TinyLlama-1.1B-Chat-v1.0
+
+These models perform much better for coding, AWS, AI, mathematics, writing, and general question answering.
+
+---
+
+# 15. What You Learn
+
+By completing this project, you will understand:
+
+* How LangChain connects your application with an LLM
+* How LangGraph creates an AI workflow
+* How state is passed between nodes
+* How to build a Streamlit chat interface
+* How Hugging Face models generate responses
+* How to connect all components into a complete AI chatbot
+
+---
+
+# 16. Future Improvements
+
+After mastering this project, you can add:
+
+* Conversation memory
+* Retrieval-Augmented Generation (RAG)
+* PDF question answering
+* Web search tools
+* Calculator tools
+* Multiple LangGraph nodes
+* Agent routing
+* Voice input/output
+* File upload support
+* Chat history persistence
+* Docker deployment
+* Render or cloud deployment
+
+This project provides a strong foundation for building production-ready AI agents using LangChain, LangGraph, Hugging Face, and Streamlit.
